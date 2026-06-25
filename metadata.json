@@ -1,0 +1,6 @@
+{
+  "name": "HydroMonitor",
+  "description": "Цифровая платформа мониторинга, каталогизации и ГИС визуализации оросительных сетей Жамбылской области",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
