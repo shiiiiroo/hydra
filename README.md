@@ -1,20 +1,261 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# HydroMonitor
 
-# Run and deploy your AI Studio app
+Каталогизация, мониторинг и риск-оценка гидротехнических сооружений
+(каналов) Жамбылской области. AITU Hackday MVP → доведено до
+production-style проекта: аутентификация, роли доступа, аудит, реальные
+PDF/CSV отчёты, локализация (RU/KK/EN), точка расширения под AI-агента.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/d5d4203c-de58-4b7c-8cb2-1974becc3426
+## Стек
 
-## Run Locally
+| Слой | Технологии |
+|---|---|
+| Frontend | React 18 + TypeScript + Vite, Tailwind CSS, react-router-dom, **react-leaflet** (карта, npm-bundled — не CDN), Recharts, i18next |
+| Backend | FastAPI, SQLAlchemy 2.0, Pydantic v2, ReportLab (PDF), pandas/xlrd (импорт данных) |
+| Auth | JWT (access + refresh), bcrypt, RBAC (admin / inspector / viewer) |
+| БД | SQLite (по умолчанию, готово к замене на PostgreSQL/PostGIS) |
+| Инфра | Alembic (миграции), pytest, Docker + docker-compose, slowapi (rate limiting) |
+| AI (точка расширения) | rule-based stub из коробки + готовый Claude-провайдер (function calling), включается одной переменной окружения |
 
-**Prerequisites:**  Node.js
+---
 
+## Быстрый старт
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Вариант A — Docker (рекомендуется)
+
+```bash
+cp backend/.env.example backend/.env
+# откройте backend/.env и задайте SECRET_KEY и ADMIN_PASSWORD (см. комментарии в файле)
+
+docker compose up --build
+
+# В отдельном терминале — загрузить реальный датасет (один раз):
+docker compose exec backend python -m app.data_import
+```
+
+- Frontend: http://localhost:8080
+- Backend + Swagger UI: http://localhost:8000/api/docs
+
+### Вариант B — локально, без Docker
+
+```bash
+# Backend
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # и задайте SECRET_KEY / ADMIN_PASSWORD
+python -m app.data_import      # импорт датасета + создание таблиц
+alembic stamp head              # отметить текущую схему как актуальную
+uvicorn app.main:app --reload --port 8000
+
+# Frontend (в другом терминале)
+cd frontend
+npm install
+npm run dev   # http://localhost:5173, проксирует /api на localhost:8000
+```
+
+### Учётные записи по умолчанию
+
+Создаются автоматически при первом запуске backend (см. `app/seed.py`):
+
+| Логин | Пароль | Роль |
+|---|---|---|
+| `admin` | значение `ADMIN_PASSWORD` из `.env` | admin — полный доступ |
+| `viewer` | значение `DEMO_VIEWER_PASSWORD` из `.env` (по умолчанию `viewer12345`) | viewer — только просмотр, удобно для демонстрации жюри |
+
+**Обязательно смените `ADMIN_PASSWORD` в `.env` перед любым реальным
+использованием** — без этого используется placeholder-значение, и backend
+явно предупреждает об этом в логах при старте.
+
+---
+
+## Архитектура доступа (RBAC)
+
+Три роли, иерархически (выше включает права нижестоящих):
+
+```
+viewer    → только чтение: дашборд, карта, объекты, категории, отчёты, аналитика
+inspector → + создание/редактирование объектов
+admin     → + удаление объектов, управление пользователями, журнал действий (audit log)
+```
+
+Это реализовано **на backend**, а не только скрытием кнопок во фронтенде —
+`require_role(...)` в `app/auth_deps.py` проверяется на каждом
+write-эндпоинте, так что прямой запрос к API от viewer-токена тоже получит
+`403`, даже если как-то обойти интерфейс. Фронтенд дополнительно скрывает
+недоступные действия (кнопки добавления/удаления, пункт меню «Пользователи»)
+для UX, но это не единственный уровень защиты.
+
+### Что покрыто из стандартного security-чек-листа
+
+- Пароли — только bcrypt-хэш (`passlib`), нигде не хранятся в открытом виде.
+- JWT короткоживущие (30 мин) + refresh-токен (7 дней); фронтенд
+  автоматически продлевает сессию через `/api/auth/refresh`.
+- Одинаковое сообщение об ошибке для "нет такого логина" и "неверный
+  пароль" — защита от user enumeration.
+- Rate limiting на `/api/auth/login` (по умолчанию 10 попыток/мин с одного IP).
+- Деактивация пользователя (`is_active=false`) рвёт доступ немедленно — это
+  проверяется в базе при каждом запросе, а не только при выпуске токена.
+- Admin не может понизить роль собственной учётной записи или удалить себя
+  (защита от случайной потери доступа).
+- Security-заголовки (`X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`) — `app/middleware.py`.
+- CORS — конкретные домены из `.env`, не `*`.
+- Сквозной audit log (`/api/auth/audit-log`, только admin): кто, что и
+  когда изменил (создание/удаление объектов, изменения ролей, входы и
+  неудачные попытки входа).
+- Секреты — только через `.env` (см. `.env.example`), не в коде, не в git.
+- Никогда не доверяем клиенту: все авторизационные решения принимает
+  backend; фронтенд — это просто UX-слой над тем же API.
+
+### Что осталось как явный "next step" (см. ниже «Известные ограничения»)
+HTTPS-терминация (обычно на реверс-прокси/балансировщике, не входит в код
+приложения), ротация JWT-секрета, 2FA, более тонкие permission-сети (например,
+inspector ограниченный по своему району) — архитектура это допускает,
+но не реализовано в рамках хакатона.
+
+---
+
+## Точка расширения: AI-агент
+
+Сделано специально так, чтобы **сегодня работало без единого ключа API**, а
+включение настоящей LLM — это правка `.env`, без изменения кода:
+
+```
+app/ai/
+  tools.py                       — функции над реальными данными (поиск объектов,
+                                    сводная статистика, топ риска) — общий слой
+  base.py                        — интерфейс провайдера
+  stub_provider.py               — rule-based реализация (работает уже сейчас)
+  openai_compatible_provider.py  — один класс для ЛЮБОГО провайдера с форматом
+                                    OpenAI tool-calling: Groq, Grok, OpenRouter, Ollama
+  anthropic_provider.py          — реальный Claude (отдельный формат tool calling)
+  router.py                      — выбор провайдера по настройкам, с graceful fallback
+```
+
+### Какую модель подключить — и какая бесплатная
+
+| Провайдер | `AI_PROVIDER=` | Стоимость | Комментарий |
+|---|---|---|---|
+| **Groq** | `groq` | **Бесплатно**, без карты | Рекомендуется. Llama 3.3 70B, реальный function calling, быстрый инференс. Лимиты по запросам в минуту/день, но хватает для демо и разработки. |
+| Grok (xAI) | `grok` | Платный (от $0.20/1M токенов) | Не путать с Groq — это другой провайдер. Бесплатен только в чат-интерфейсе grok.com/X, не в API. |
+| OpenRouter | `openrouter` | Бесплатные модели с суффиксом `:free` | Агрегатор многих моделей за одним ключом. |
+| Ollama | `ollama` | Бесплатно, локально | Модель крутится на вашей машине, ключ не нужен, но нужны ресурсы ПК. |
+| Anthropic | `anthropic` | Платный | Claude, отдельная реализация (`anthropic_provider.py`), другой формат tool calling. |
+
+**Самый быстрый бесплатный путь (Groq):**
+
+1. Зарегистрируйтесь на [console.groq.com](https://console.groq.com) (email или Google, без карты) и создайте API-ключ.
+2. В `backend/.env`:
+   ```
+   AI_AGENT_ENABLED=true
+   AI_PROVIDER=groq
+   AI_PROVIDER_API_KEY=gsk_...
+   ```
+3. Перезапустите backend (`docker compose restart backend` или просто заново `uvicorn`).
+
+Никакой другой код менять не нужно — роутер (`/api/ai/ask`) и кнопка
+AI-ассистента во фронтенде (правый нижний угол, на каждой странице) уже
+подключены и просто начнут получать развёрнутые ответы вместо
+демо-заглушки. Чтобы переключиться на другого провайдера из таблицы выше —
+поменяйте только `AI_PROVIDER` и ключ; `AI_MODEL`/`AI_BASE_URL` можно не
+задавать, для каждого провайдера есть разумный дефолт (см.
+`OPENAI_COMPATIBLE_PRESETS` в `app/routers/ai.py`).
+
+Добавить ещё один провайдер с другим форматом API (не OpenAI-совместимый,
+как Gemini через нативный SDK) — реализуйте `AIAgentProvider.ask()` по
+аналогии с `anthropic_provider.py` и зарегистрируйте в `get_provider()`.
+
+---
+
+## Важная находка по данным: процент износа
+
+Исходный столбец «Процент износа» в `датасет.xls` хранится как **доля**
+(0.3, 1.3 и т.д.), и на листе `Лист1` ячейка явно отформатирована в Excel
+как `0%` — то есть `0.3` означает **30%**, не 0.3%. Это подтверждено через
+`xlrd(formatting_info=True)` на исходном файле. Без этого умножения почти
+все каналы (включая постройки 1920–1930-х годов) показывали бы
+неправдоподобный износ ~0.3%. Конвертация реализована в
+`app/data_import.py` с комментарием на месте; результат — 54 из 438
+записей с реальным значением износа (20%, 30%, и один выброс 130% из
+источника, отображаемый как 100% после ограничения сверху — вероятная
+опечатка в исходной таблице, не наша ошибка). Для оставшихся записей без
+этого поля риск-скор считается по возрасту, разрыву КПД и наличию
+зафиксированного дефекта (см. `app/scoring.py`).
+
+---
+
+## Структура проекта
+
+```
+hydromonitor/
+├── docker-compose.yml
+├── backend/
+│   ├── app/
+│   │   ├── main.py            # сборка FastAPI-приложения, middleware, роутеры
+│   │   ├── settings.py        # вся конфигурация из .env
+│   │   ├── security.py        # хэширование паролей, JWT
+│   │   ├── auth_deps.py       # get_current_user, require_role(...)
+│   │   ├── audit.py           # запись в журнал действий
+│   │   ├── seed.py            # создание admin/viewer при первом запуске
+│   │   ├── models.py          # User, AuditLog, HydroObject, StatusHistory
+│   │   ├── scoring.py         # rule-based риск-модель (без ML)
+│   │   ├── geo.py             # детерминированная генерация координат
+│   │   ├── data_import.py     # парсинг датасет.xls → БД
+│   │   ├── pdf_utils.py       # общие стили для PDF (кириллица, таблицы)
+│   │   ├── ai/                # точка расширения под AI-агента (см. выше)
+│   │   └── routers/           # objects, stats, categories, reports, auth, ai
+│   ├── alembic/                # миграции схемы БД
+│   ├── tests/                  # pytest: auth/RBAC, scoring
+│   ├── data/dataset.xls         # исходные данные РГП «Казводхоз»
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── .env.example
+└── frontend/
+    ├── src/
+    │   ├── api/                # axios-клиент с авто-обновлением токена
+    │   ├── auth/AuthContext.tsx
+    │   ├── components/          # Sidebar, ObjectModal, GaugeChart, AIChatPanel...
+    │   ├── pages/                # Dashboard, Map, Objects, Categories, Reports,
+    │   │                         # Analytics, AdminUsers, Login
+    │   └── i18n/locales/{ru,kk,en}.json
+    ├── Dockerfile + nginx.conf
+    └── package.json
+```
+
+---
+
+## Тесты
+
+```bash
+cd backend
+pytest -v   # 16 тестов: логин, RBAC, user enumeration, риск-модель
+```
+
+```bash
+cd frontend
+npm run lint   # tsc --noEmit
+npm run build  # полная прод-сборка
+```
+
+---
+
+## Известные ограничения (честно, для защиты на хакатоне)
+
+- **Координаты приближённые.** В исходных данных их нет — каждому объекту
+  присвоена опорная точка реального района Жамбылской области +
+  детерминированное смещение. Явно подписано в интерфейсе.
+- **Только тип «канал».** Датасет содержит исключительно каналы; модель
+  данных (`object_type`) сделана расширяемой под другие типы сооружений,
+  когда появятся данные.
+- **Локализация описаний категорий.** Тексты критериев в разделе
+  «Категории» (например, «Риск-скор < 35…») генерируются backend'ом на
+  русском независимо от выбранного языка интерфейса — полная локализация
+  таких производных текстов требует параметра локали на backend, не
+  реализовано в этой итерации.
+- **PostgreSQL/PostGIS.** Архитектура готова (просто смена `DATABASE_URL`),
+  но по умолчанию используется SQLite для простоты демонстрации.
+- **AI-агент.** Без ключа API работает в rule-based режиме — это осознанный
+  выбор для надёжной демонстрации без сетевых зависимостей; с ключом
+  переключается на настоящего Claude одной переменной окружения.

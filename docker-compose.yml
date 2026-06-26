@@ -1,0 +1,57 @@
+version: "3.9"
+
+# Запуск всего проекта одной командой:
+#   docker compose up --build
+# Backend: http://localhost:8000  (Swagger UI: /api/docs)
+# Frontend: http://localhost:8080
+#
+# Перед первым запуском скопируйте backend/.env.example в backend/.env
+# и задайте свои SECRET_KEY / ADMIN_PASSWORD (см. комментарии в файле).
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data:ro
+      - hydromonitor_db:/app/db
+    env_file:
+      - ./backend/.env
+    environment:
+      # Внутри контейнера БД хранится в volume hydromonitor_db, а не рядом с кодом.
+      - DATABASE_URL=sqlite:////app/db/hydromonitor.db
+      - CORS_ORIGINS=http://localhost:8080,http://localhost:5173
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # --- Прод-апгрейд (опционально) ---
+  # Раскомментируйте, чтобы перейти с SQLite на PostgreSQL + PostGIS.
+  # Не забудьте поменять DATABASE_URL backend-сервиса на
+  # postgresql+psycopg://hydromonitor:hydromonitor@postgres:5432/hydromonitor
+  #
+  # postgres:
+  #   image: postgis/postgis:16-3.4
+  #   environment:
+  #     POSTGRES_USER: hydromonitor
+  #     POSTGRES_PASSWORD: hydromonitor
+  #     POSTGRES_DB: hydromonitor
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  hydromonitor_db:
+  # pg_data:
