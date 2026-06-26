@@ -93,9 +93,16 @@ TOOL_DEFINITIONS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "текст поиска по коду/названию/району"},
-                "status": {"type": "string", "enum": ["ok", "watch", "repair", "critical"]},
-                "anchor_key": {"type": "string", "description": "ключ района"},
+                "query": {"type": "string", "description": "текст поиска по коду/названию/района. Не включай этот параметр, если поиск по тексту не нужен."},
+                "status": {
+                    "type": "string",
+                    "description": (
+                        "Один из: ok, watch, repair, critical. "
+                        "Если фильтр по статусу не нужен — не включай этот параметр вообще, "
+                        "не передавай пустую строку."
+                    ),
+                },
+                "anchor_key": {"type": "string", "description": "ключ района. Не включай этот параметр, если фильтр по району не нужен."},
                 "limit": {"type": "integer", "default": 10},
             },
         },
