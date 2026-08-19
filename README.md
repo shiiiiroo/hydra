@@ -4,6 +4,23 @@
 
 ---
 
+### 🛡️ Security & Architectural Overview (For Academic Review)
+
+This project was developed as a production-ready MVP/hackathon prototype. It demonstrates core principles of **Cybersecurity** and **Distributed Systems Monitoring**:
+
+* **Role-Based Access Control (RBAC):** Strict 3-tier access policy (`viewer`, `inspector`, `admin`) enforced at the API layer (FastAPI backend), preventing unauthorized state mutations regardless of client-side logic.
+* **Authentication & Token Lifecycle:** Secure JWT authentication mechanism implementing short-lived Access Tokens and Refresh Token rotation, paired with `bcrypt` password hashing.
+* **Audit Logging & Incident Response:** Comprehensive audit logging tracking all administrative actions and object state changes (Who/What/When) for accountability and security diagnostics.
+* **Defensive Engineering:**
+  * Rate limiting applied on authentication routes to mitigate brute-force and DDoS attempts (`slowapi`).
+  * Protection against User Enumeration attacks on login endpoints.
+  * Strict environment variable management for production secrets (`.env`).
+* **IoT & Spatial Analytics Alignment:** Integration of rule-based risk scoring algorithms over geo-referenced sensor/infrastructure data (`react-leaflet`), serving as a foundation for Smart City / Industrial IoT monitoring systems.
+
+> **Project Status:** *Completed (Archived MVP)*. Built to showcase full-stack security patterns, geospatial risk assessment, and API design.
+
+---
+
 ## Возможности
 
 **Карта и каталог**
