@@ -1,6 +1,6 @@
 # HydroMonitor
 
-Система каталогизации, мониторинга и риск-оценки гидротехнических сооружений Жамбылской области. Превращает табличные данные РГП «Казводхоз» в веб-приложение с картой, ролевым доступом, автоматической отчётностью и встроенным AI-агентом.
+A cataloging, monitoring, and risk-assessment system for hydraulic structures in the Zhambyl region. It transforms tabular data from RSE "Kazvodkhoz" into a web application featuring an interactive map, role-based access control (RBAC), automated reporting, and a built-in AI agent.
 
 ---
 
@@ -21,89 +21,83 @@ This project was developed as a production-ready MVP/hackathon prototype. It dem
 
 ---
 
-## Возможности
+## Features
 
-**Карта и каталог**
-- Интерактивная карта 438 объектов с тремя слоями визуализации: по статусу риска, по проценту износа, по году постройки
-- Реестр объектов с поиском, фильтрацией, сортировкой и постраничной навигацией
-- Карточка объекта: общая информация, технические параметры, история изменений статуса, паспорт объекта в PDF
-- Раздел «Категории» — справочник критериев систематизации с канбан-представлением по уровням состояния
+**Map & Catalog**
+* Interactive map displaying 438 facilities with three visualization layers: risk status, wear percentage, and construction year.
+* Facility registry with search, filtering, sorting, and pagination.
+* Facility card: general info, technical parameters, status change history, and downloadable PDF passports.
+* "Categories" section — a criteria directory with a Kanban view categorized by state/condition levels.
 
-**Риск-оценка**
-- Прозрачная rule-based формула без машинного обучения: возраст объекта, разрыв проектного и фактического КПД, зафиксированный дефект, процент износа
-- Четыре расчётных уровня состояния с защитным правилом (зафиксированный дефект не даёт статусу быть лучше «Требует ремонта»)
-- Полная история пересчётов статуса по каждому объекту
+**Risk Assessment**
+* Transparent rule-based formula (no ML): facility age, gap between projected and actual efficiency, recorded defects, and wear percentage.
+* Four calculated condition levels with a protective rule (a recorded defect caps the status to no better than "Requires Repair").
+* Complete history of status recalculations for every facility.
 
-**Отчётность и аналитика**
-- Отчёты формируются в реальном времени по текущим данным, не статичные файлы: сводный отчёт по региону, объекты, требующие внимания, отчёт по району, график осмотров
-- Экспорт в PDF (с поддержкой кириллицы) и CSV (с BOM для корректного открытия в Excel)
-- Аналитическая панель: распределение по статусам, сравнение проектного и фактического КПД, динамика по десятилетиям, рейтинг самых рискованных объектов
+**Reporting & Analytics**
+* Real-time report generation (not static files): regional summary, priority/attention items, district reports, inspection schedules.
+* Export capabilities: PDF (Cyrillic support) and CSV (UTF-8 BOM for seamless Excel opening).
+* Analytics dashboard: status distribution, projected vs. actual efficiency comparison, decade dynamics, top high-risk facilities rating.
 
-**Доступ и безопасность**
-- Аутентификация по JWT с автоматическим продлением сессии
-- Три роли с разграничением на уровне backend, а не только интерфейса: `viewer` (только просмотр), `inspector` (+ редактирование объектов), `admin` (+ управление пользователями и журналом действий)
-- Сквозной журнал действий (audit log): кто, что и когда изменил
-- Rate limiting на аутентификации, security-заголовки, защита от user enumeration, секреты только в переменных окружения
+**Access & Security**
+* JWT-based authentication with automatic session renewal.
+* Three roles enforced at the backend API layer: `viewer` (read-only), `inspector` (+ edit permissions), `admin` (+ user management and audit logging).
+* End-to-end Audit Log: tracks who modified what and when.
+* Rate limiting, security headers, protection against user enumeration, and strict environment variable secret handling.
 
-**Локализация**
-- Полная локализация интерфейса на русский, казахский и английский языки с мгновенным переключением
+**Localization**
+* Full UI localization in English, Kazakh, and Russian with instant switching.
 
-**AI-агент**
-- Работает из коробки без какого-либо ключа API (rule-based ответы по реальным данным базы)
-- Подключение полноценной языковой модели — правка трёх переменных окружения, без изменения кода
-- Поддерживает Groq (бесплатно), Grok, OpenRouter, Ollama и Claude через единый интерфейс провайдера
-- Отвечает на языке вопроса пользователя, использует только данные из инструментов, корректно деградирует при сбое модели вместо падения запроса
-
----
-
-## Технологический стек
-
-| Слой | Технологии |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, react-leaflet, Recharts, i18next, axios |
-| Backend | FastAPI, Python 3.12, SQLAlchemy 2.0, Pydantic v2, ReportLab, pandas/xlrd |
-| Аутентификация | JWT (access + refresh), bcrypt, RBAC |
-| Данные | SQLite (готовность к переходу на PostgreSQL + PostGIS) |
-| Инфраструктура | Docker, Docker Compose, Alembic, pytest, slowapi |
-| AI | Унифицированный интерфейс провайдера: OpenAI-совместимый формат (Groq, Grok, OpenRouter, Ollama) и Anthropic Claude |
+**AI Agent**
+* Works out-of-the-box without requiring API keys (rule-based fallback over real DB data).
+* Easy integration with LLMs by modifying 3 environment variables (no code changes needed).
+* Supports Groq (free), Grok, OpenRouter, Ollama, and Claude via a unified provider interface.
+* Responds in the user's language, strictly relies on tool data, and features graceful degradation on model failures.
 
 ---
 
-## Быстрый старт
+## Tech Stack
 
-### Вариант A — Docker (рекомендуется, одинаково для Linux/macOS/Windows)
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, react-leaflet, Recharts, i18next, Axios |
+| **Backend** | FastAPI, Python 3.12, SQLAlchemy 2.0, Pydantic v2, ReportLab, pandas/xlrd |
+| **Authentication** | JWT (access + refresh), bcrypt, RBAC |
+| **Database** | SQLite (PostgreSQL + PostGIS ready) |
+| **Infrastructure** | Docker, Docker Compose, Alembic, pytest, slowapi |
+| **AI Integration** | Unified Provider Interface (Groq, Grok, OpenRouter, Ollama, Anthropic Claude) |
+
+---
+
+## Quick Start
+
+### Option A — Docker (Recommended)
 
 **Linux / macOS:**
-
 ```bash
-cp backend/.env.example backend/.env
-# откройте backend/.env и задайте SECRET_KEY и ADMIN_PASSWORD (см. комментарии в файле)
-
+cp backend/.env.example backend/.env # Set SECRET_KEY and ADMIN_PASSWORD in backend/.env
 docker compose up --build
 
-# в отдельном терминале — загрузить датасет (один раз)
+# In a separate terminal — seed the dataset (run once):
 docker compose exec backend python -m app.data_import
 ```
 
-**Windows (PowerShell или CMD):**
+**Windows (PowerShell/CMD):**
 
 ```cmd
 copy backend\.env.example backend\.env
-:: откройте backend\.env и задайте SECRET_KEY и ADMIN_PASSWORD
-
 docker compose up --build
 
-:: в отдельном терминале
+:: In a separate terminal:
 docker compose exec backend python -m app.data_import
 ```
+Access Points:
 
-Перед запуском убедитесь, что приложение Docker Desktop запущено и его движок отображает статус «Running» — иначе `docker compose` не сможет подключиться.
+Frontend: http://localhost:8080
 
-После запуска:
-- Frontend: http://localhost:8080
-- Backend и Swagger UI: http://localhost:8000/api/docs
+Backend & Swagger UI: http://localhost:8000/api/docs
 
-### Вариант B — локальный запуск без Docker
+### Option B — Local Setup (Without Docker)
 
 **Backend — Linux / macOS:**
 
@@ -135,9 +129,7 @@ alembic stamp head
 uvicorn app.main:app --reload --port 8000
 ```
 
-> Если PowerShell блокирует активацию виртуального окружения, выполните `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` перед `Activate.ps1`, либо используйте обычный CMD с `venv\Scripts\activate.bat`.
-
-**Frontend (одинаково для всех платформ, в отдельном терминале):**
+**Frontend (All Platforms):**
 
 ```bash
 cd frontend
@@ -145,52 +137,52 @@ npm install
 npm run dev
 ```
 
-Frontend поднимется на http://localhost:5173 и проксирует API-запросы на backend на порту 8000.
+The frontend will run on http://localhost:5173 and proxy API requests to the backend on port 8000.
 
-### Учётные записи по умолчанию
+### Default accounts
 
-Создаются автоматически при первом запуске backend:
+These are created automatically when the backend is first started:
 
-| Логин | Пароль | Роль |
-|---|---|---|
-| `admin` | значение `ADMIN_PASSWORD` из `.env` | Администратор — полный доступ |
-| `viewer` | значение `DEMO_VIEWER_PASSWORD` (по умолчанию `viewer12345`) | Только просмотр — для демонстрации без риска изменения данных |
+| Username | Password | Role |
+| ---|---|---|
+| `admin` | the value of `ADMIN_PASSWORD` from `.env` | Administrator — full access |
+| `viewer` | the value of `DEMO_VIEWER_PASSWORD` (default `viewer12345`) | View-only — for demonstration purposes without the risk of data being altered |
 
-Перед любым использованием за пределами локальной разработки задайте собственные значения `SECRET_KEY` и `ADMIN_PASSWORD` в `.env` — при значениях по умолчанию backend явно предупреждает об этом в логах.
-
----
-
-## Модель доступа
-
-Три роли, каждая включает права предыдущей:
-
-```
-viewer    → чтение: дашборд, карта, реестр объектов, категории, отчёты, аналитика
-inspector → + создание и редактирование объектов
-admin     → + удаление объектов, управление пользователями, журнал действий
-```
-
-Авторизационные решения принимаются на backend: прямой запрос к API от пользователя с ролью `viewer` получит `403`, даже если интерфейс был бы изменён или обойдён. Фронтенд дополнительно скрывает недоступные действия для удобства, но не является единственным уровнем защиты.
+Before using the application outside of local development, set your own values for `SECRET_KEY` and `ADMIN_PASSWORD` in `.env` — if the default values are used, the backend will explicitly warn about this in the logs.
 
 ---
 
-## AI-агент
+## Access Model
 
-Архитектура построена так, чтобы система отвечала на вопросы уже сегодня, без единого внешнего API, а подключение реальной языковой модели сводилось к изменению переменных окружения.
+Permissions are cumulative across roles:
+
+```
+viewer → Read-only: dashboard, map, facility registry, categories, reports, analytics.
+
+inspector → viewer rights + facility creation & editing.
+
+admin → inspector rights + facility deletion, user management, audit log access.
+
+```
+> Note: Access decisions are enforced on the backend layer. Direct API calls from a viewer account receive a 403 Forbidden response regardless of client-side modifications.
+
+---
+
+## AI Agent & Providers
+
+Designed to function seamlessly offline while supporting easy cloud LLM integration:
 
 ```
 app/ai/
-  tools.py                       — функции над реальными данными базы, общий слой
-                                    для заглушки и для языковой модели
-  base.py                        — интерфейс провайдера
-  stub_provider.py               — rule-based реализация без внешних зависимостей
-  openai_compatible_provider.py  — единая реализация для любого провайдера
-                                    с форматом OpenAI tool-calling
-  anthropic_provider.py          — реализация для Claude
-  prompts.py                     — системный промпт, общий для всех провайдеров
+  tools.py                       — DB query functions (shared by stub & LLMs)
+  base.py                        — Provider interface definition
+  stub_provider.py               — Rule-based fallback without external dependencies
+  openai_compatible_provider.py  — Unified implementation for OpenAI tool-calling format
+  anthropic_provider.py          — Claude-specific implementation
+  prompts.py                     — Shared system prompt
 ```
 
-### Подключение бесплатной модели (Groq)
+### Free Model Setup (Groq)
 
 ```env
 AI_AGENT_ENABLED=true
@@ -198,94 +190,66 @@ AI_PROVIDER=groq
 AI_PROVIDER_API_KEY=gsk_...
 ```
 
-Ключ создаётся на [console.groq.com](https://console.groq.com) без банковской карты. Перезапуск backend — и кнопка AI-ассистента в интерфейсе начинает отвечать развёрнуто на основе реальных данных вместо демонстрационных ответов.
+### Supported Providers
 
-### Поддерживаемые провайдеры
-
-| Провайдер | `AI_PROVIDER=` | Стоимость |
+| Provider | `AI_PROVIDER=` | Value |
 |---|---|---|
-| Groq | `groq` | Бесплатно, без карты — рекомендуется |
-| Grok (xAI) | `grok` | Платный |
-| OpenRouter | `openrouter` | Есть бесплатные модели (суффикс `:free`) |
-| Ollama | `ollama` | Бесплатно, локально |
-| Anthropic (Claude) | `anthropic` | Платный |
+| Groq | `groq` | Free (Recommended) |
+| Grok (xAI) | `grok` | Paid |
+| OpenRouter | `openrouter` | Free models available (`:free` suffix) |
+| Ollama | `ollama` | Free (Local) |
+| Anthropic (Claude) | `anthropic` | Paid |
 
-### Надёжность
+### Reliability
 
-Системный промпт задаёт язык ответа по языку вопроса пользователя, ограничивает агента только данными из инструментов и явно отделяет статистические наблюдения от диагностических утверждений. Если языковая модель формирует некорректный вызов инструмента — известная особенность некоторых открытых моделей при строгой валидации на стороне провайдера — система автоматически переходит на ответ без обращения к инструментам, не возвращая ошибку пользователю.
+The system prompt sets the response language based on the user’s query, restricts the agent to using only tool data, and clearly distinguishes statistical observations from diagnostic statements. If the language model generates an incorrect tool call — a known feature of some open-source models when subjected to strict validation on the provider’s side — the system automatically switches to a response without consulting the tools, without returning an error to the user.
 
 ---
 
-## Структура проекта
+## Project Structure
 
 ```
 hydromonitor/
 ├── docker-compose.yml
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # сборка приложения, middleware, роутеры
-│   │   ├── settings.py        # конфигурация из переменных окружения
-│   │   ├── security.py        # хэширование паролей, JWT
-│   │   ├── auth_deps.py       # аутентификация и проверка ролей
-│   │   ├── audit.py           # журнал действий
-│   │   ├── models.py          # User, AuditLog, HydroObject, StatusHistory
-│   │   ├── scoring.py         # риск-модель
-│   │   ├── geo.py             # генерация координат
-│   │   ├── data_import.py     # импорт исходного датасета
-│   │   ├── ai/                # провайдеры AI-агента
-│   │   └── routers/           # objects, stats, categories, reports, auth, ai
-│   ├── alembic/                # миграции схемы базы данных
-│   ├── tests/                  # автоматические тесты (pytest)
-│   ├── data/                   # исходный датасет
+│   │   ├── main.py            # App entry point, middleware, routers
+│   │   ├── settings.py        # Environment settings
+│   │   ├── security.py        # Password hashing, JWT
+│   │   ├── auth_deps.py       # Auth & role checks
+│   │   ├── audit.py           # Audit logging
+│   │   ├── models.py          # Database models
+│   │   ├── scoring.py         # Risk scoring model
+│   │   ├── ai/                # AI providers & tools
+│   │   └── routers/           # API endpoints
+│   ├── tests/                  # Automated tests (pytest)
 │   └── requirements.txt
 └── frontend/
-    └── src/
-        ├── api/                # клиент с автоматическим обновлением токена
-        ├── auth/                # контекст аутентификации
-        ├── components/          # переиспользуемые компоненты интерфейса
-        ├── pages/               # страницы приложения
-        └── i18n/locales/        # переводы RU / KK / EN
+    └── src/                   # React TypeScript frontend
 ```
 
 ---
 
-## Тестирование
+## Running Tests
 
 ```bash
 cd backend
 pytest -v
 ```
 
-Покрывает аутентификацию, контроль доступа по ролям, риск-модель и поведение AI-агента, включая корректную деградацию при сбое языковой модели.
+Covers authentication, role-based access control, the risk model and the behaviour of the AI agent, including graceful degradation in the event of a language model failure.
 
 ```bash
 cd frontend
 npm run build
 ```
 
-Полная типизация (`tsc --noEmit`) и продакшен-сборка без ошибок.
-
 ---
 
-## Особенность исходных данных
+## Roadmap
 
-Столбец «Процент износа» в исходном датасете хранится как доля и отформатирован в Excel процентным форматом ячейки: значение `0.3` соответствует `30%`, а не `0.3%`. Корректность преобразования подтверждена инструментально через анализ формата ячеек, а не визуальным просмотром таблицы. Поле заполнено лишь для части объектов, поэтому используется как дополнительный, а не единственный фактор риск-оценки — основные компоненты формулы рассчитываются по возрасту объекта и разрыву проектного и фактического КПД.
-
----
-
-## Известные ограничения
-
-- Координаты объектов на карте приближённые: исходные данные не содержат точной геопривязки, положение рассчитывается по опорной точке района с детерминированным смещением.
-- Модель данных охватывает один тип сооружения (канал); поле типа сооружения сделано расширяемым для других типов при появлении соответствующих данных.
-- Производные текстовые описания критериев классификации формируются backend'ом на русском языке независимо от выбранного языка интерфейса.
-- В качестве СУБД по умолчанию используется SQLite; переход на PostgreSQL выполняется изменением одной переменной `DATABASE_URL`.
-
----
-
-## Дорожная карта
-
-| Срок | Направление |
+| Timeline | Objectives |
 |---|---|
-| 1–2 мес. | Переход на PostgreSQL + PostGIS, загрузка реальных фотографий и актов обследования, уточнение координат через GPS-обход объектов |
-| 3–6 мес. | Другие типы сооружений, мобильное приложение для полевых инспекторов, интеграция с системами акимата, уведомления о просроченных осмотрах |
-| 6–12 мес. | Прогнозная модель износа на исторических данных, спутниковый мониторинг изменений русел, открытый API для смежных государственных органов |
+| 1–2 mos. | Migration to PostgreSQL + PostGIS, photo/survey report uploads, GPS coordinate refinement |
+| 3–6 mos. | Support for additional facility types, mobile app for field inspectors, regional system integrations, inspection delay alerts |
+| 6–12 mos. | Predictive wear model based on historical data, satellite-based riverbed monitoring, public API for governmental agencies |
